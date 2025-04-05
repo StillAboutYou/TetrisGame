@@ -16,10 +16,11 @@ private:
     std::chrono::milliseconds frame_duration;
 
     void create_new_shape();
-    
+
 public:
     TetrisGame(uint8_t map_height, uint8_t map_width);
     std::vector<std::vector<char>>& getBoard() { return board; }
     void drawMap();
     void startGame();
+    void fixShape(const Shape& shape);
 };

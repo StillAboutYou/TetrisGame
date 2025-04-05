@@ -16,6 +16,15 @@ void TetrisGame::create_new_shape() {
     current_shape = std::make_unique<Shape>(*this);
 }
 
+void TetrisGame::fixShape(const Shape& shape) {
+    for (const auto& [y, x] : shape.get_coords()) {
+        if (y >= 0 && y < height && x >= 0 && x < width) {
+            board[y][x] = shape.get_symbol();
+        }
+    }
+    create_new_shape();
+}
+
 void TetrisGame::drawMap() {
     system("cls");
     auto temp_board = board;
@@ -42,10 +51,12 @@ void TetrisGame::startGame() {
 
         // Написание координат текущей фигуры (отладка)
         // может пригодиться для написание rotate()
+        /*
         std::cout << "Current shape coordinates:\n";
         for (const auto& [y, x] : current_shape->get_coords()) {
             std::cout << "(" << static_cast<int>(y) << ", " << static_cast<int>(x) << ") ";
         }
+        */
         //
 
         current_shape->move(1, 0);
