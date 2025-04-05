@@ -22,5 +22,5 @@ public:
     char get_symbol() const { return symbol; }
     void rotate();
     void move(int dy = 0, int dx = 0);
-    uint8_t checkCollision();
+    bool checkCollision();
 };

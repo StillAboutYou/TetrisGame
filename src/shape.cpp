@@ -50,12 +50,12 @@ void Shape::move(int dy, int dx) {
         x += dx;
     }
     
-    if (checkCollision() == 2) {
+    if (checkCollision()) {
         game.fixShape(*this); 
     }
 }
 
-uint8_t Shape::checkCollision() {
+bool Shape::checkCollision() {
     const auto& board = game.getBoard();
     std::cout << "Координаты: ";
     for (const auto& [y, x] : coords) {
@@ -63,16 +63,18 @@ uint8_t Shape::checkCollision() {
     }
     std::cout << "\n";
     for (const auto& [y, x] : coords) {
+        if (x < 0 || x >= static_cast<int>(board[0].size())) {
+            std::cout << "Столкновение в: (" << static_cast<int>(y) << ", " << static_cast<int>(x) << ") - Out of bounds X\n";
+            coords = old_coords;
+            return false;
+        }
         if ((y >= static_cast<int>(board.size())) ||
            (y >= 0 && board[y][x] != ' '))
         {
             std::cout << "Столкновение в: (" << static_cast<int>(y) << ", " << static_cast<int>(x) << ") - Out of bounds X\n";
             coords = old_coords;
-            return 2;
-        }
-        if (x < 0 || x >= static_cast<int>(board[0].size())) {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }

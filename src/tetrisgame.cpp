@@ -47,7 +47,6 @@ void TetrisGame::startGame() {
     while (true) {
         auto frame_start = clock::now();
         
-        drawMap();
 
         // Написание координат текущей фигуры (отладка)
         // может пригодиться для написание rotate()
@@ -60,14 +59,27 @@ void TetrisGame::startGame() {
         //
 
         current_shape->move(1, 0);
+        drawMap();
 
         if (_kbhit()) {
             char key = _getch();
             if (key == 'q') break;
-            if (key == 'a') current_shape->move(0, -1);
-            if (key == 's') current_shape->move(1, 0);
-            if (key == 'd') current_shape->move(0, 1);
-            if (key == 'w') current_shape->rotate();
+            if (key == 'a') {
+                current_shape->move(0, -1);
+                drawMap();
+            }
+            if (key == 's') {
+                current_shape->move(1, 0);
+                drawMap();
+            }
+            if (key == 'd') {
+                current_shape->move(0, 1);
+                drawMap();
+            }
+            if (key == 'w') {
+                current_shape->rotate();
+                drawMap();
+            }
         }
 
         auto frame_end = clock::now();
