@@ -57,24 +57,53 @@ void Shape::move(int dy, int dx) {
 
 bool Shape::checkCollision() {
     const auto& board = game.getBoard();
+    /*
     std::cout << "Координаты: ";
     for (const auto& [y, x] : coords) {
         std::cout << "(" << static_cast<int>(y) << ", " << static_cast<int>(x) << ") ";
     }
     std::cout << "\n";
+    */
     for (const auto& [y, x] : coords) {
         if (x < 0 || x >= static_cast<int>(board[0].size())) {
-            std::cout << "Столкновение в: (" << static_cast<int>(y) << ", " << static_cast<int>(x) << ") - Out of bounds X\n";
+            // std::cout << "Столкновение в: (" << static_cast<int>(y) << ", " << static_cast<int>(x) << ")\n";
             coords = old_coords;
             return false;
         }
         if ((y >= static_cast<int>(board.size())) ||
            (y >= 0 && board[y][x] != ' '))
         {
-            std::cout << "Столкновение в: (" << static_cast<int>(y) << ", " << static_cast<int>(x) << ") - Out of bounds X\n";
+            // std::cout << "Столкновение в: (" << static_cast<int>(y) << ", " << static_cast<int>(x) << ")\n";
             coords = old_coords;
             return true;
         }
     }
     return false;
+}
+
+bool Shape::checkCollisionWithCoords(const std::vector<std::pair<int, int>>& test_coords) const {
+    for (const auto& [y, x] : test_coords) {
+        if (y >= static_cast<int>(game.getBoard().size()) || x < 0 || x >= static_cast<int>(game.getBoard()[0].size())) {
+            return true;
+        }
+        if (y >= 0 && game.getBoard()[y][x] != ' ') {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::vector<std::pair<int, int>> Shape::getNormalizedCoords() const {
+    int min_y = coords[0].first;
+    int min_x = coords[0].second;
+    for (const auto& [y, x] : coords) {
+        if (y < min_y) min_y = y;
+        if (x < min_x) min_x = x;
+    }
+
+    std::vector<std::pair<int, int>> normalized;
+    for (const auto& [y, x] : coords) {
+        normalized.emplace_back(y - min_y, x - min_x);
+    }
+    return normalized;
 }
