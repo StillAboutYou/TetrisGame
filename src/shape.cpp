@@ -3,44 +3,125 @@
 #include <iostream>
 
 Shape::Shape(TetrisGame& game_ref) : game(game_ref), xpos(game_ref.getBoard()[0].size() / 2) {
-    // при инициализации объекта класса случайным образом выбирается
-    // форма фигуры и задаются ее координаты
     type = rand() % 7;
+    int start_y = 0;
 
     switch (type) {
-    case 0:
-        coords = { {-1, xpos - 1}, {-2, xpos - 1}, {-1, xpos}, {-2, xpos} };
+    case 0: // O
+        orientations = { {{0,0}, {0,1}, {1,0}, {1,1}} };
         symbol = 'O';
+        start_y = -2;
+        color = 14; // Жёлтый
         break;
-    case 1:
-        coords = { {-4, xpos}, {-3, xpos}, {-2, xpos}, {-1, xpos} };
+    case 1: // I
+        orientations = {
+            {{0,0}, {0,1}, {0,2}, {0,3}},
+            {{0,0}, {1,0}, {2,0}, {3,0}}
+        };
         symbol = 'I';
+        start_y = -4;
+        color = 11; // Голубой
         break;
-    case 2:
-        coords = { {-1, xpos - 1}, {-1, xpos}, {-2, xpos}, {-2, xpos + 1} };
+    case 2: // S
+        orientations = {
+            {{0,1}, {0,2}, {1,0}, {1,1}}, // Горизонтальная S
+            {{0,0}, {1,0}, {1,1}, {2,1}}  // Вертикальная S
+        };
         symbol = 'S';
+        start_y = -2;
+        color = 12; // Красный
         break;
-    case 3:
-        coords = { {-2, xpos - 1}, {-1, xpos}, {-2, xpos}, {-1, xpos + 1} };
+    case 3: // Z
+        orientations = {
+            {{0,0}, {0,1}, {1,1}, {1,2}}, // Горизонтальная Z
+            {{0,1}, {1,0}, {1,1}, {2,0}}  // Вертикальная Z
+        };
         symbol = 'Z';
+        start_y = -2;
+        color = 10; // Зелёный
         break;
-    case 4:
-        coords = { {-1, xpos + 1}, {-3, xpos}, {-2, xpos}, {-1, xpos} };
+    case 4: // L
+        orientations = {
+            {{0,0}, {1,0}, {2,0}, {2,1}}, // Основная
+            {{0,2}, {1,0}, {1,1}, {1,2}}, // Поворот 1
+            {{0,0}, {0,1}, {1,1}, {2,1}}, // Поворот 2
+            {{0,0}, {0,1}, {0,2}, {1,0}}  // Поворот 3
+        };
         symbol = 'L';
+        start_y = -3;
+        color = 13; // Пурпурный
         break;
-    case 5:
-        coords = { {-1, xpos - 1}, {-3, xpos}, {-2, xpos}, {-1, xpos} };
+    case 5: // J
+        orientations = {
+            {{0,1}, {1,1}, {2,1}, {2,0}}, // Основная
+            {{0,0}, {1,0}, {1,1}, {1,2}}, // Поворот 1
+            {{0,0}, {0,1}, {1,0}, {2,0}}, // Поворот 2
+            {{0,0}, {0,1}, {0,2}, {1,2}}  // Поворот 3
+        };
         symbol = 'J';
+        start_y = -3;
+        color = 9;  // Синий
         break;
-    case 6:
-        coords = { {-2, xpos - 1}, {-2, xpos}, {-1, xpos}, {-2, xpos + 1} };
+    case 6: // T
+        orientations = {
+            {{0,0}, {0,1}, {0,2}, {1,1}},
+            {{0,1}, {1,0}, {1,1}, {2,1}},
+            {{1,0}, {1,1}, {1,2}, {0,1}},
+            {{0,0}, {1,0}, {1,1}, {2,0}}
+        };
         symbol = 'T';
+        start_y = -2;
+        color = 15; // Белый
         break;
+    }
+
+    // Установка начальных координат
+    for (const auto& [rel_y, rel_x] : orientations[0]) {
+        coords.emplace_back(start_y + rel_y, xpos + rel_x);
     }
 }
 
+bool Shape::tryWallKick(TetrisGame& game, const std::vector<std::pair<int, int>>& new_coords) {
+    // Список сдвигов для проверки: (dy, dx)
+    const std::vector<std::pair<int, int>> kicks = {
+        {0, -1},  // влево
+        {0, 1},   // вправо
+        {-1, 0},  // вверх (редко, но возможно)
+        {1, 0}    // вниз
+    };
+
+    for (const auto& [dy, dx] : kicks) {
+        std::vector<std::pair<int, int>> kicked_coords;
+        for (const auto& [y, x] : new_coords) {
+            kicked_coords.emplace_back(y + dy, x + dx);
+        }
+        if (!checkCollisionWithCoords(kicked_coords)) {
+            coords = kicked_coords;
+            return true;
+        }
+    }
+    return false;
+}
+
 void Shape::rotate() {
-    // реализация поворота
+    uint8_t new_orientation = (orientation + 1) % orientations.size();
+    std::vector<std::pair<int, int>> new_coords;
+    int base_y = coords[0].first;
+    int base_x = coords[0].second;
+    for (const auto& [rel_y, rel_x] : orientations[new_orientation]) {
+        new_coords.emplace_back(base_y + rel_y, base_x + rel_x);
+    }
+
+    if (!checkCollisionWithCoords(new_coords)) {
+        coords = new_coords;
+        orientation = new_orientation;
+    }
+    else {
+        // Пробуем сдвинуть фигуру (wallkick)
+        if (tryWallKick(game, new_coords)) {
+            orientation = new_orientation;
+        }
+    }
 }
 
 void Shape::move(int dy, int dx) {
@@ -71,7 +152,7 @@ bool Shape::checkCollision() {
             return false;
         }
         if ((y >= static_cast<int>(board.size())) ||
-           (y >= 0 && board[y][x] != ' '))
+           (y >= 0 && board[y][x].symbol != ' '))
         {
             // std::cout << "Столкновение в: (" << static_cast<int>(y) << ", " << static_cast<int>(x) << ")\n";
             coords = old_coords;
@@ -86,7 +167,7 @@ bool Shape::checkCollisionWithCoords(const std::vector<std::pair<int, int>>& tes
         if (y >= static_cast<int>(game.getBoard().size()) || x < 0 || x >= static_cast<int>(game.getBoard()[0].size())) {
             return true;
         }
-        if (y >= 0 && game.getBoard()[y][x] != ' ') {
+        if (y >= 0 && game.getBoard()[y][x].symbol != ' ') {
             return true;
         }
     }

@@ -9,10 +9,18 @@ private:
     std::unique_ptr<Shape> current_shape;
     std::unique_ptr<Shape> next_shape;
     uint8_t height, width;
-    std::vector<std::vector<char>> board;
-    const uint8_t kFPS = 10;
+    struct Cell {
+        char symbol = ' ';
+        int color = 7; // Белый по умолчанию
+    };
+    std::vector<std::vector<Cell>> board;
+    const uint8_t kFPS = 3;
     int score = 0;
     bool is_game = true;
+
+    int totalLinesCleared = 0;
+    int totalShapesDropped = 0;
+    int highScore = 0;
 
     using clock = std::chrono::steady_clock;
     std::chrono::time_point<clock> last_frame_time;
@@ -23,7 +31,12 @@ private:
 
 public:
     TetrisGame(uint8_t map_height, uint8_t map_width);
-    std::vector<std::vector<char>>& getBoard() { return board; }
+    std::vector<std::vector<Cell>>& getBoard() { return board; }
+
+    int getTotalLinesCleared() const { return totalLinesCleared; }
+    int getTotalShapesDropped() const { return totalShapesDropped; }
+    int getHighScore() const { return highScore; }
+
     void drawMap();
     void startGame();
     void resetGame();
