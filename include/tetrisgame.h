@@ -4,10 +4,11 @@
 #include <chrono>
 #include "shape.h"
 
+// Базовый класс для фигур Tetris. Хранит координаты, ориентацию и методы движения.
 class TetrisGame {
 private:
-    std::unique_ptr<Shape> current_shape;
-    std::unique_ptr<Shape> next_shape;
+    std::unique_ptr<Shape> current_shape; // Текущая фигура (умный указатель для управления памятью)
+    std::unique_ptr<Shape> next_shape; // Следующая фигура (умный указатель для управления памятью)
     uint8_t height, width;
     struct Cell {
         char symbol = ' ';

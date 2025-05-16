@@ -16,16 +16,24 @@ TetrisGame::TetrisGame(uint8_t map_height, uint8_t map_width)
 
 void TetrisGame::create_new_shape() {
     current_shape = std::move(next_shape);
-    next_shape = std::make_unique<Shape>(*this);
-    
-    auto test_coords = current_shape->get_coords();
-    for (auto& [y, x] : test_coords) {
-        y += static_cast<int>(1 * current_shape->get_y_speed());
-        x += 0;
+    switch (rand() % 7) {
+    case 0: next_shape = std::make_unique<OShape>(*this); break;
+    case 1: next_shape = std::make_unique<IShape>(*this); break;
+    case 2: next_shape = std::make_unique<SShape>(*this); break;
+    case 3: next_shape = std::make_unique<ZShape>(*this); break;
+    case 4: next_shape = std::make_unique<LShape>(*this); break;
+    case 5: next_shape = std::make_unique<JShape>(*this); break;
+    case 6: next_shape = std::make_unique<TShape>(*this); break;
     }
-
-    if (current_shape->checkCollisionWithCoords(test_coords)) {
-        is_game = false;
+    if (current_shape) { // Проверка на nullptr
+        auto test_coords = current_shape->get_coords();
+        for (auto& [y, x] : test_coords) {
+            y += static_cast<int>(1 * current_shape->get_y_speed());
+            x += 0;
+        }
+        if (current_shape->checkCollisionWithCoords(test_coords)) {
+            is_game = false;
+        }
     }
 }
 
@@ -149,12 +157,23 @@ void TetrisGame::drawMap() {
 void TetrisGame::resetGame() {
     board = std::vector<std::vector<Cell>>(height, std::vector<Cell>(width, Cell{ ' ', 7 }));
     score = 0;
-    totalLinesCleared = 0; // Добавляем, чтобы сбросить статистику
+    totalLinesCleared = 0;
     totalShapesDropped = 0;
-    current_shape.reset(); // Явный сброс текущей фигуры
-    next_shape.reset();    // Явный сброс следующей фигуры
-    next_shape = std::make_unique<Shape>(*this);
-    create_new_shape();
+    current_shape.reset(); // Сбрасываем текущую фигуру
+    next_shape.reset();    // Сбрасываем следующую фигуру
+
+    // Инициализируем next_shape случайной фигурой
+    switch (rand() % 7) {
+    case 0: next_shape = std::make_unique<OShape>(*this); break;
+    case 1: next_shape = std::make_unique<IShape>(*this); break;
+    case 2: next_shape = std::make_unique<SShape>(*this); break;
+    case 3: next_shape = std::make_unique<ZShape>(*this); break;
+    case 4: next_shape = std::make_unique<LShape>(*this); break;
+    case 5: next_shape = std::make_unique<JShape>(*this); break;
+    case 6: next_shape = std::make_unique<TShape>(*this); break;
+    }
+
+    create_new_shape(); // Теперь current_shape будет инициализирована
     is_game = true;
 }
 

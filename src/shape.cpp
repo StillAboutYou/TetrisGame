@@ -2,105 +2,8 @@
 #include "tetrisgame.h"
 #include <iostream>
 
-Shape::Shape(TetrisGame& game_ref) : game(game_ref), xpos(game_ref.getBoard()[0].size() / 2) {
-    type = rand() % 7;
-    int start_y = 0;
-
-    switch (type) {
-    case 0: // O
-        orientations = { {{0,0}, {0,1}, {1,0}, {1,1}} };
-        symbol = 'O';
-        start_y = -2;
-        color = 14; // Жёлтый
-        break;
-    case 1: // I
-        orientations = {
-            {{0,0}, {0,1}, {0,2}, {0,3}},
-            {{0,0}, {1,0}, {2,0}, {3,0}}
-        };
-        symbol = 'I';
-        start_y = -4;
-        color = 11; // Голубой
-        break;
-    case 2: // S
-        orientations = {
-            {{0,1}, {0,2}, {1,0}, {1,1}}, // Горизонтальная S
-            {{0,0}, {1,0}, {1,1}, {2,1}}  // Вертикальная S
-        };
-        symbol = 'S';
-        start_y = -2;
-        color = 12; // Красный
-        break;
-    case 3: // Z
-        orientations = {
-            {{0,0}, {0,1}, {1,1}, {1,2}}, // Горизонтальная Z
-            {{0,1}, {1,0}, {1,1}, {2,0}}  // Вертикальная Z
-        };
-        symbol = 'Z';
-        start_y = -2;
-        color = 10; // Зелёный
-        break;
-    case 4: // L
-        orientations = {
-            {{0,0}, {1,0}, {2,0}, {2,1}}, // Основная
-            {{0,2}, {1,0}, {1,1}, {1,2}}, // Поворот 1
-            {{0,0}, {0,1}, {1,1}, {2,1}}, // Поворот 2
-            {{0,0}, {0,1}, {0,2}, {1,0}}  // Поворот 3
-        };
-        symbol = 'L';
-        start_y = -3;
-        color = 13; // Пурпурный
-        break;
-    case 5: // J
-        orientations = {
-            {{0,1}, {1,1}, {2,1}, {2,0}}, // Основная
-            {{0,0}, {1,0}, {1,1}, {1,2}}, // Поворот 1
-            {{0,0}, {0,1}, {1,0}, {2,0}}, // Поворот 2
-            {{0,0}, {0,1}, {0,2}, {1,2}}  // Поворот 3
-        };
-        symbol = 'J';
-        start_y = -3;
-        color = 9;  // Синий
-        break;
-    case 6: // T
-        orientations = {
-            {{0,0}, {0,1}, {0,2}, {1,1}},
-            {{0,1}, {1,0}, {1,1}, {2,1}},
-            {{1,0}, {1,1}, {1,2}, {0,1}},
-            {{0,0}, {1,0}, {1,1}, {2,0}}
-        };
-        symbol = 'T';
-        start_y = -2;
-        color = 15; // Белый
-        break;
-    }
-
-    // Установка начальных координат
-    for (const auto& [rel_y, rel_x] : orientations[0]) {
-        coords.emplace_back(start_y + rel_y, xpos + rel_x);
-    }
-}
-
-bool Shape::tryWallKick(TetrisGame& game, const std::vector<std::pair<int, int>>& new_coords) {
-    // Список сдвигов для проверки: (dy, dx)
-    const std::vector<std::pair<int, int>> kicks = {
-        {0, -1},  // влево
-        {0, 1},   // вправо
-        {-1, 0},  // вверх (редко, но возможно)
-        {1, 0}    // вниз
-    };
-
-    for (const auto& [dy, dx] : kicks) {
-        std::vector<std::pair<int, int>> kicked_coords;
-        for (const auto& [y, x] : new_coords) {
-            kicked_coords.emplace_back(y + dy, x + dx);
-        }
-        if (!checkCollisionWithCoords(kicked_coords)) {
-            coords = kicked_coords;
-            return true;
-        }
-    }
-    return false;
+Shape::Shape(TetrisGame& game_ref, char symbol, int color, int xpos)
+    : game(game_ref), symbol(symbol), color(color), xpos(xpos) {
 }
 
 void Shape::rotate() {
@@ -116,12 +19,26 @@ void Shape::rotate() {
         coords = new_coords;
         orientation = new_orientation;
     }
-    else {
-        // Пробуем сдвинуть фигуру (wallkick)
-        if (tryWallKick(game, new_coords)) {
-            orientation = new_orientation;
+    else if (tryWallKick(new_coords)) {
+        orientation = new_orientation;
+    }
+}
+
+bool Shape::tryWallKick(const std::vector<std::pair<int, int>>& new_coords) {
+    const std::vector<std::pair<int, int>> kicks = {
+        {0, -1}, {0, 1}, {-1, 0}, {1, 0}
+    };
+    for (const auto& [dy, dx] : kicks) {
+        std::vector<std::pair<int, int>> kicked_coords;
+        for (const auto& [y, x] : new_coords) {
+            kicked_coords.emplace_back(y + dy, x + dx);
+        }
+        if (!checkCollisionWithCoords(kicked_coords)) {
+            coords = kicked_coords;
+            return true;
         }
     }
+    return false;
 }
 
 void Shape::move(int dy, int dx) {
@@ -187,4 +104,106 @@ std::vector<std::pair<int, int>> Shape::getNormalizedCoords() const {
         normalized.emplace_back(y - min_y, x - min_x);
     }
     return normalized;
+}
+// SShape (S-образная фигура)
+SShape::SShape(TetrisGame& game_ref) : Shape(game_ref, 'S', 12, game_ref.getBoard()[0].size() / 2) {
+    initializeOrientations();
+    for (const auto& [rel_y, rel_x] : orientations[0]) {
+        coords.emplace_back(-2 + rel_y, xpos + rel_x);
+    }
+}
+
+void SShape::initializeOrientations() {
+    orientations = {
+        {{{0,1}, {0,2}, {1,0}, {1,1}}}, // Горизонтальная S
+        {{{0,0}, {1,0}, {1,1}, {2,1}}}  // Вертикальная S
+    };
+}
+
+// ZShape (Z-образная фигура)
+ZShape::ZShape(TetrisGame& game_ref) : Shape(game_ref, 'Z', 10, game_ref.getBoard()[0].size() / 2) {
+    initializeOrientations();
+    for (const auto& [rel_y, rel_x] : orientations[0]) {
+        coords.emplace_back(-2 + rel_y, xpos + rel_x);
+    }
+}
+
+void ZShape::initializeOrientations() {
+    orientations = {
+        {{{0,0}, {0,1}, {1,1}, {1,2}}}, // Горизонтальная Z
+        {{{0,1}, {1,0}, {1,1}, {2,0}}}  // Вертикальная Z
+    };
+}
+
+// LShape (L-образная фигура)
+LShape::LShape(TetrisGame& game_ref) : Shape(game_ref, 'L', 13, game_ref.getBoard()[0].size() / 2) {
+    initializeOrientations();
+    for (const auto& [rel_y, rel_x] : orientations[0]) {
+        coords.emplace_back(-3 + rel_y, xpos + rel_x);
+    }
+}
+
+void LShape::initializeOrientations() {
+    orientations = {
+        {{{0,0}, {1,0}, {2,0}, {2,1}}}, // Основная
+        {{{0,2}, {1,0}, {1,1}, {1,2}}}, // Поворот 1
+        {{{0,0}, {0,1}, {1,1}, {2,1}}}, // Поворот 2
+        {{{0,0}, {0,1}, {0,2}, {1,0}}}  // Поворот 3
+    };
+}
+
+// JShape (J-образная фигура)
+JShape::JShape(TetrisGame& game_ref) : Shape(game_ref, 'J', 9, game_ref.getBoard()[0].size() / 2) {
+    initializeOrientations();
+    for (const auto& [rel_y, rel_x] : orientations[0]) {
+        coords.emplace_back(-3 + rel_y, xpos + rel_x);
+    }
+}
+
+void JShape::initializeOrientations() {
+    orientations = {
+        {{{0,1}, {1,1}, {2,1}, {2,0}}}, // Основная
+        {{{0,0}, {1,0}, {1,1}, {1,2}}}, // Поворот 1
+        {{{0,0}, {0,1}, {1,0}, {2,0}}}, // Поворот 2
+        {{{0,0}, {0,1}, {0,2}, {1,2}}}  // Поворот 3
+    };
+}
+
+// TShape (T-образная фигура)
+TShape::TShape(TetrisGame& game_ref) : Shape(game_ref, 'T', 15, game_ref.getBoard()[0].size() / 2) {
+    initializeOrientations();
+    for (const auto& [rel_y, rel_x] : orientations[0]) {
+        coords.emplace_back(-2 + rel_y, xpos + rel_x);
+    }
+}
+
+void TShape::initializeOrientations() {
+    orientations = {
+        {{{0,0}, {0,1}, {0,2}, {1,1}}}, // Основная
+        {{{0,1}, {1,0}, {1,1}, {2,1}}}, // Поворот 1
+        {{{1,0}, {1,1}, {1,2}, {0,1}}}, // Поворот 2
+        {{{0,0}, {1,0}, {1,1}, {2,0}}}  // Поворот 3
+    };
+}
+
+OShape::OShape(TetrisGame& game_ref) : Shape(game_ref, 'O', 14, game_ref.getBoard()[0].size() / 2) {
+    initializeOrientations();
+    for (const auto& [rel_y, rel_x] : orientations[0]) {
+        coords.emplace_back(-2 + rel_y, xpos + rel_x);
+    }
+}
+
+void OShape::initializeOrientations() {
+    orientations = { {{0,0}, {0,1}, {1,0}, {1,1}} };
+}
+
+IShape::IShape(TetrisGame& game_ref) : Shape(game_ref, 'I', 11, game_ref.getBoard()[0].size() / 2) {
+    initializeOrientations();
+    for (const auto& [rel_y, rel_x] : orientations[0]) {
+        coords.emplace_back(-4 + rel_y, xpos + rel_x);
+    }
+}
+
+void IShape::initializeOrientations() {
+    orientations = { {{0,0}, {0,1}, {0,2}, {0,3}}, {{0,0}, {1,0}, {2,0}, {3,0}} };
 }
